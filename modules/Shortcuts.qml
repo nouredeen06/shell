@@ -144,6 +144,36 @@ Scope {
     }
 
     IpcHandler {
+        function open(): void {
+            const popouts = ShellState.componentsForActive()?.panels?.popouts;
+            if (!popouts)
+                return;
+            popouts.currentName = "workspacepreview";
+            popouts.hasCurrent = true;
+        }
+
+        function close(): void {
+            const popouts = ShellState.componentsForActive()?.panels?.popouts;
+            if (popouts)
+                popouts.hasCurrent = false;
+        }
+
+        function toggle(): void {
+            const popouts = ShellState.componentsForActive()?.panels?.popouts;
+            if (!popouts)
+                return;
+            if (popouts.hasCurrent && popouts.currentName === "workspacepreview")
+                popouts.hasCurrent = false;
+            else {
+                popouts.currentName = "workspacepreview";
+                popouts.hasCurrent = true;
+            }
+        }
+
+        target: "workspacepreview"
+    }
+
+    IpcHandler {
         function info(title: string, message: string, icon: string): void {
             Toaster.toast(title, message, icon, Toast.Info);
         }
