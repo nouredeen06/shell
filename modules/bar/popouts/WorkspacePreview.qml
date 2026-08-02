@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Layouts
 import Quickshell.Wayland
 import Caelestia.Config
 import qs.components
@@ -13,100 +12,97 @@ Item {
     required property PopoutState popouts
 
     implicitWidth: 220
-    implicitHeight: Math.min(col.implicitHeight, 500)
+    implicitHeight: Math.min(list.contentHeight, 500)
 
-    clip: true
+    focus: true
 
-    Flickable {
+    ListView {
+        id: list
+
         anchors.fill: parent
 
-        contentWidth: width
-        contentHeight: col.implicitHeight
-
         clip: true
+        spacing: Tokens.spacing.small
+        keyNavigationEnabled: true
+        focus: true
 
-        ColumnLayout {
-            id: col
-
-            width: root.implicitWidth
-            spacing: Tokens.spacing.small
-
-            Repeater {
-                model: {
-                    const list = Hypr.workspaces.values.filter(ws => !ws.name.startsWith("special:") && ws.lastIpcObject.windows > 0);
-                    list.sort((a, b) => a.id - b.id);
-                    return list;
-                }
-
-                delegate: WorkspaceCard {
-                    required property var modelData
-
-                    Layout.fillWidth: true
-
-                    wsId: modelData.id
-                    popouts: root.popouts
-                }
-            }
+        model: {
+            const ws = Hypr.workspaces.values.filter(w => !w.name.startsWith("special:") && w.lastIpcObject.windows > 0);
+            ws.sort((a, b) => a.id - b.id);
+            return ws;
         }
-    }
 
-    component WorkspaceCard: StyledRect {
-        id: card
+        currentIndex: {
+            const activeId = Hypr.activeWsId;
+            const wsList = Hypr.workspaces.values.filter(w => !w.name.startsWith("special:") && w.lastIpcObject.windows > 0);
+            wsList.sort((a, b) => a.id - b.id);
+            return Math.max(0, wsList.findIndex(w => w.id === activeId));
+        }
 
-        required property int wsId
-        required property PopoutState popouts
-
-        readonly property bool isActive: Hypr.activeWsId === card.wsId
-        readonly property var windows: Hypr.toplevels.values.filter(t => t.workspace?.id === card.wsId)
-
-        implicitHeight: cardLayout.implicitHeight + Tokens.padding.medium * 2
-
-        radius: Tokens.rounding.medium
-        color: card.isActive ? Colours.tPalette.m3primaryContainer : Colours.tPalette.m3surfaceContainer
-
-        StateLayer {
-            radius: parent.radius
-            onClicked: {
-                Hypr.dispatch(`workspace ${card.wsId}`);
-                card.popouts.hasCurrent = false;
+        Keys.onReturnPressed: {
+            const ws = model[currentIndex];
+            if (ws) {
+                Hypr.dispatch(`workspace ${ws.id}`);
+                root.popouts.hasCurrent = false;
             }
         }
 
-        ColumnLayout {
-            id: cardLayout
+        delegate: Item {
+            id: wsCard
 
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: Tokens.padding.medium
+            required property var modelData
+            required property int index
 
-            spacing: Tokens.spacing.small
+            readonly property int wsId: modelData.id
+            readonly property bool isHighlighted: ListView.isCurrentItem
+            readonly property var firstWindow: Hypr.toplevels.values.find(t => t.workspace?.id === wsCard.wsId) ?? null
 
-            StyledText {
-                text: {
-                    const ws = Hypr.workspaces.values.find(w => w.id === card.wsId);
-                    return ws?.name && ws.name !== card.wsId.toString() ? ws.name : qsTr("Workspace %1").arg(card.wsId);
-                }
-                font: Tokens.font.label.medium
-                color: card.isActive ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onSurfaceVariant
+            width: list.width
+            height: 120
+            clip: true
+
+            Rectangle {
+                anchors.fill: parent
+                radius: Tokens.rounding.medium
+                color: wsCard.isHighlighted ? Colours.tPalette.m3primaryContainer : Colours.tPalette.m3surfaceContainer
             }
 
-            Flow {
-                Layout.fillWidth: true
+            ScreencopyView {
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
 
-                spacing: Tokens.spacing.extraSmall
+                captureSource: wsCard.firstWindow?.wayland ?? null // qmllint disable unresolved-type
+                live: true
+                constraintSize.width: 220
+                constraintSize.height: 500
+            }
 
-                Repeater {
-                    model: card.windows
+            Rectangle {
+                z: 1
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.margins: Tokens.spacing.extraSmall
+                radius: Tokens.rounding.small
+                color: Qt.rgba(0, 0, 0, 0.55)
+                implicitWidth: badge.implicitWidth + Tokens.padding.small
+                implicitHeight: badge.implicitHeight + 2
 
-                    delegate: ScreencopyView {
-                        required property var modelData
+                StyledText {
+                    id: badge
 
-                        captureSource: modelData.wayland // qmllint disable unresolved-type
-                        live: true
-                        constraintSize.width: 80
-                        constraintSize.height: 55
-                    }
+                    anchors.centerIn: parent
+                    text: wsCard.wsId.toString()
+                    font: Tokens.font.label.small
+                    color: "white"
+                }
+            }
+
+            MouseArea {
+                z: 2
+                anchors.fill: parent
+                onClicked: {
+                    Hypr.dispatch(`workspace ${wsCard.wsId}`);
+                    root.popouts.hasCurrent = false;
                 }
             }
         }
