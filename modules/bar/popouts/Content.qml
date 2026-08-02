@@ -31,6 +31,13 @@ Item {
         }
 
         Popout {
+            name: "workspacepreview"
+            sourceComponent: WorkspacePreview {
+                popouts: root.popouts
+            }
+        }
+
+        Popout {
             id: networkPopout
 
             name: "network"
