@@ -180,6 +180,7 @@ Item {
 
         opacity: 0
         active: false
+        focus: shouldBeActive
 
         states: State {
             name: "active"

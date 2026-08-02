@@ -97,9 +97,8 @@ Item {
                 }
             }
 
-            MouseArea {
-                z: 2
-                anchors.fill: parent
+            StateLayer {
+                radius: Tokens.rounding.medium
                 onClicked: {
                     Hypr.dispatch(`workspace ${wsCard.wsId}`);
                     root.popouts.hasCurrent = false;

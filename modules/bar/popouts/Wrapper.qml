@@ -97,7 +97,7 @@ Item {
     }
 
     Binding {
-        when: root.isDetached || (root.hasCurrent && root.currentName === "wirelesspassword")
+        when: root.isDetached || (root.hasCurrent && (root.currentName === "wirelesspassword" || root.currentName === "workspacepreview"))
 
         target: QsWindow.window
         property: "WlrLayershell.keyboardFocus"
@@ -109,6 +109,7 @@ Item {
 
         shouldBeActive: root.hasCurrent && !root.detachedMode
         anchors.fill: parent
+        focus: shouldBeActive && root.currentName === "workspacepreview"
 
         sourceComponent: Content {
             popouts: popoutState
